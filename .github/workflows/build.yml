@@ -1,0 +1,53 @@
+name: Build Eldia HelpCommands Plugin
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  python-wheel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build & test tools
+        run: |
+          python -m pip install --upgrade pip build pytest ruff endstone
+          python -m pip install "git+https://github.com/Karanztez/eldia-worlds.git" --no-deps
+          pip install -e . --no-deps
+      - name: Lint and test
+        run: |
+          ruff check src tests
+          pytest -v
+      - name: Build Python wheel
+        run: |
+          python -m build --wheel --outdir dist-artifacts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eldia-helpcommands-wheel
+          path: dist-artifacts/*.whl
+
+  release:
+    needs: [python-wheel]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: eldia-helpcommands-wheel
+          path: release-assets
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            release-assets/*.whl
