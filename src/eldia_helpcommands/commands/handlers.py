@@ -42,19 +42,24 @@ def _execute_teleport(
     point: TeleportPoint,
 ) -> bool:
     """Teleport `actor` to `point` via `eldia_worlds.WorldsAPI` and record cooldown."""
-    ok = services.worlds.teleport_player(
-        actor.raw_player or actor,
-        world_name=point.world_name,
-        dimension=point.dimension,
-        x=point.x,
-        y=point.y,
-        z=point.z,
-        yaw=point.yaw,
-        pitch=point.pitch,
-    )
-    if not ok and actor.raw_player is not None:
-        ok = actor.teleport_to_point(point)
-    if not ok:
+    target = actor.raw_player or actor
+
+    def _do_tp() -> bool:
+        ok = services.worlds.teleport_player(
+            target,
+            world_name=point.world_name,
+            dimension=point.dimension,
+            x=point.x,
+            y=point.y,
+            z=point.z,
+            yaw=point.yaw,
+            pitch=point.pitch,
+        )
+        if not ok and actor.raw_player is not None:
+            ok = actor.teleport_to_point(point)
+        return ok
+
+    if not _do_tp():
         actor.send_message(
             services.lang.msg(
                 "world_not_loaded",
@@ -63,6 +68,24 @@ def _execute_teleport(
             ),
         )
         return False
+
+    # Re-snap 2 ticks later so cross-dimension chunk loading never drops the player into void
+    raw_p = actor.raw_player
+    srv = getattr(raw_p, "server", None) if raw_p is not None else None
+    scheduler = getattr(srv, "scheduler", None) if srv is not None else None
+    if scheduler is not None and hasattr(scheduler, "run_task"):
+        try:
+            pm = getattr(srv, "plugin_manager", None)
+            plugin_ref = pm.get_plugin("eldia_helpcommands") if pm is not None else None
+            if plugin_ref is not None:
+                scheduler.run_task(
+                    plugin_ref,
+                    lambda: _do_tp() if getattr(raw_p, "is_valid", True) else None,
+                    delay=2,
+                )
+        except Exception as exc:  # noqa: BLE001
+            _ = exc
+
     services.combat.record_teleport(
         actor.player_key,
         services.config.teleport_cooldown_seconds,
