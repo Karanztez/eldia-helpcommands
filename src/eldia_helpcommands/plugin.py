@@ -149,7 +149,7 @@ class HelpCommandsPlugin(Plugin):
 
     api_version = "0.10"
     name = "eldia_helpcommands"
-    version = "0.1.0"
+    version = "0.1.1"
     description = "Essential spawn, 3-slot Home GUI, cross-world OP Warp, and Combat Guard for Endstone"
     authors: ClassVar[list[str]] = ["Eldia"]
     soft_depend: ClassVar[list[str]] = ["eldia_worlds"]

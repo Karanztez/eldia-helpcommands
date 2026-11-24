@@ -4,14 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "endstone-eldia-helpcommands"
-version = "0.1.0"
+version = "0.1.1"
 description = "Essential spawn, 3-slot home GUI, cross-world OP warps, and combat/event guard for Endstone"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["endstone>=0.10", "endstone-eldia-worlds>=0.2.1"]
+dependencies = ["endstone>=0.10"]
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff"]
+worlds = ["endstone-eldia-worlds>=0.2.1"]
 
 [project.entry-points."endstone"]
 eldia_helpcommands = "eldia_helpcommands:HelpCommandsPlugin"
